@@ -1,6 +1,7 @@
 package Dancer2::Plugin::Auth::Extensible::Provider::LDAP;
 
 use Carp;
+use Dancer2::Core::Types qw/Str/;
 use Net::LDAP;
 use Moo;
 with "Dancer2::Plugin::Auth::Extensible::Role::Provider";
@@ -32,6 +33,7 @@ The LDAP server url.
 
 has server => (
     is => 'ro',
+    isa => Str,
     required => 1,
 );
 
@@ -43,6 +45,7 @@ The base dn user for all search queries (e.g. 'dc=ofosos,dc=org').
 
 has basedn => (
     is => 'ro',
+    isa => Str,
     required => 1,
 );
 
@@ -55,6 +58,7 @@ and reading the directory (e.g. 'cn=Administrator,cn=users,dc=ofosos,dc=org').
 
 has authdn => (
     is => 'ro',
+    isa => Str,
     required => 1,
 );
 
@@ -66,6 +70,7 @@ The password of above named user
 
 has password => (
     is => 'ro',
+    isa => Str,
     required => 1,
 );
 
@@ -77,6 +82,7 @@ The group where users are to be found (e.g. 'cn=users,dc=ofosos,dc=org')
 
 has usergroup => (
     is => 'ro',
+    isa => Str,
     required => 1,
 );
 
@@ -88,6 +94,7 @@ This is a comma separated list of LDAP group objects that are to be queried.
 
 has roles => (
     is => 'ro',
+    isa => Str,
     required => 1,
 );
 
