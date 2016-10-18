@@ -1,4 +1,16 @@
-Revision history for Dancer2-Plugin-Auth-Extensible
+Revision history for Dancer2-Plugin-Auth-Extensible-Provider-LDAP
+
+0.700 Tue 18 Oct 18:06:38 CEST 2016
+
+    [ENHANCEMENTS]
+
+    * Major rewrite to fix broken provider. It appears that the old provider
+      had not worked at all for a long time. New release includes tests against
+      latest release of Dancer2::Plugin::Auth::Extensible.
+      NOTE: this is NOT backwards-compatible with the old provider. Please
+      read the new documentation.
+
+Earlier revision history includes all of Dancer2-Plugin-Auth-Extensible:
 
 0.600 Tue May 31 15:38:56 2016 CEST
 

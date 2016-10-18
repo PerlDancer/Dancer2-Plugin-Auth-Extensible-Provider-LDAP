@@ -1,5 +1,6 @@
 NAME
-    Dancer2::Plugin::Auth::Extensible::LDAP - LDAP authentication provider
+    Dancer2::Plugin::Auth::Extensible::Provider::LDAP - LDAP authentication
+    provider for Dancer2::Plugin::Auth::Extensible
 
 DESCRIPTION
     This class is a generic LDAP authentication provider.
@@ -7,45 +8,70 @@ DESCRIPTION
     See Dancer2::Plugin::Auth::Extensible for details on how to use the
     authentication framework.
 
-    This provider requires the following parameters in it's config file:
+ATTRIBUTES
+  host
+    The LDAP host name or IP address passed to "CONSTRUCTOR" in Net::LDAP.
 
-    *   server
+    Required.
 
-        The LDAP server url.
+  options
+    Extra options to be passed to "CONSTRUCTOR" in Net::LDAP as a hash
+    reference.
 
-    *   basedn
+  basedn
+    The base dn for all searches (e.g. 'dc=example,dc=com').
 
-        The base dn user for all search queries (e.g. 'dc=ofosos,dc=org').
+    Required.
 
-    *   authdn
+  binddn
+    This must be the distinguished name of a user capable of binding to and
+    reading the directory (e.g. 'cn=admin,dc=example,dc=com').
 
-        This must be the distinguished name of a user capable of binding to
-        and reading the directory (e.g.
-        'cn=Administrator,cn=users,dc=ofosos,dc=org').
+    Required.
 
-    *   password
+  bindpw
+    The password for "binddn".
 
-        The password of above named user
+    Required.
 
-    *   usergroup
+  username_attribute
+    The attribute to match when searching for a username.
 
-        The group where users are to be found (e.g.
-        'cn=users,dc=ofosos,dc=org')
+    Defaults to 'cn'.
 
-    *   roles
+  name_attribute
+    The attribute which contains the full name of the user. See also:
 
-        This is a comma separated list of LDAP group objects that are to be
-        queried.
+    "name" in Dancer2::Plugin::Auth::Extensible::Role::User.
 
-Class Methods
-    authenticate_user
-        Given the sAMAccountName and password entered by the user, return
-        true if they are authenticated, or false if not.
+    Defaults to 'displayName'.
 
-    get_user_details
-        Given a sAMAccountName return the common name (cn), distinguished
-        name (dn) and user principal name (userPrincipalName) in a hash ref.
+  user_filter
+    Filter used when searching for users.
 
-    get_user_roles
-        Given a sAMAccountName, return a list of roles that user has.
+    Defaults to '(objectClass=person)'.
 
+  role_attribute
+    The attribute used when searching for role names.
+
+    Defaults to 'cn'.
+
+  role_filter
+    Filter used when searching for roles.
+
+    Defaults to '(objectClass=groupOfNames)'
+
+  role_member_attribute
+    The attribute who's value should be a user's DN to show the user has the
+    specific "role_attribute"'s value.
+
+    Defaults to 'member'.
+
+METHODS
+  ldap
+    Returns a connected Net::LDAP object. On error logs an error and returns
+    undef.
+
+  authenticate_user $username, $password
+  get_user_details $username
+  get_user_roles

@@ -2,14 +2,13 @@ package Dancer2::Plugin::Auth::Extensible::Provider::LDAP;
 
 use Carp qw/croak/;
 use Dancer2::Core::Types qw/HashRef Str/;
-use Module::Runtime qw/use_module/;
 use Net::LDAP;
 
 use Moo;
 with "Dancer2::Plugin::Auth::Extensible::Role::Provider";
 use namespace::clean;
 
-our $VERSION = '0.612';
+our $VERSION = '0.700';
 
 =head1 NAME 
 

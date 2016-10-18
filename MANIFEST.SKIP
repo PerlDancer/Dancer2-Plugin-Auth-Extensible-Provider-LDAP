@@ -5,3 +5,4 @@
 \.old$
 \.swp$
 cover_db/*
+README.md
