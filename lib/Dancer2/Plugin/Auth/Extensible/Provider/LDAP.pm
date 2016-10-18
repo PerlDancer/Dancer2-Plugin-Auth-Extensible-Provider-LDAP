@@ -1,18 +1,19 @@
 package Dancer2::Plugin::Auth::Extensible::Provider::LDAP;
 
-use Carp;
-use Dancer2::Core::Types qw/Str/;
+use Carp qw/croak/;
+use Dancer2::Core::Types qw/HashRef Str/;
+use Module::Runtime qw/use_module/;
 use Net::LDAP;
+
 use Moo;
 with "Dancer2::Plugin::Auth::Extensible::Role::Provider";
 use namespace::clean;
 
-our $VERSION = '0.600';
+our $VERSION = '0.612';
 
 =head1 NAME 
 
-Dancer2::Plugin::Auth::Extensible::LDAP - LDAP authentication provider
-
+Dancer2::Plugin::Auth::Extensible::Provider::LDAP - LDAP authentication provider for Dancer2::Plugin::Auth::Extensible
 
 =head1 DESCRIPTION
 
@@ -21,106 +22,192 @@ This class is a generic LDAP authentication provider.
 See L<Dancer2::Plugin::Auth::Extensible> for details on how to use the
 authentication framework.
 
-This provider requires the following parameters in it's config file:
+=head1 ATTRIBUTES
 
-=over
+=head2 host
 
-=item * server
+The LDAP host name or IP address passed to L<Net::LDAP/CONSTRUCTOR>.
 
-The LDAP server url. 
+Required.
 
 =cut
 
-has server => (
-    is => 'ro',
-    isa => Str,
+has host => (
+    is       => 'ro',
+    isa      => Str,
     required => 1,
 );
 
-=item * basedn
+=head2 options
 
-The base dn user for all search queries (e.g. 'dc=ofosos,dc=org').
+Extra options to be passed to L<Net::LDAP/CONSTRUCTOR> as a hash reference.
+
+=cut
+
+has options => (
+    is      => 'ro',
+    isa     => HashRef,
+    default => sub { +{} },
+);
+
+=head2 basedn
+
+The base dn for all searches (e.g. 'dc=example,dc=com').
+
+Required.
 
 =cut
 
 has basedn => (
-    is => 'ro',
-    isa => Str,
+    is       => 'ro',
+    isa      => Str,
     required => 1,
 );
 
-=item * authdn
+=head2 binddn
 
 This must be the distinguished name of a user capable of binding to
-and reading the directory (e.g. 'cn=Administrator,cn=users,dc=ofosos,dc=org').
+and reading the directory (e.g. 'cn=admin,dc=example,dc=com').
+
+Required.
 
 =cut
 
-has authdn => (
-    is => 'ro',
-    isa => Str,
+has binddn => (
+    is       => 'ro',
+    isa      => Str,
     required => 1,
 );
 
-=item * password
+=head2 bindpw
 
-The password of above named user
+The password for L</binddn>.
+
+Required.
 
 =cut
 
-has password => (
-    is => 'ro',
-    isa => Str,
+has bindpw => (
+    is       => 'ro',
+    isa      => Str,
     required => 1,
 );
 
-=item * usergroup
+=head2 username_attribute
 
-The group where users are to be found (e.g. 'cn=users,dc=ofosos,dc=org')
+The attribute to match when searching for a username.
+
+Defaults to 'cn'.
 
 =cut
 
-has usergroup => (
-    is => 'ro',
-    isa => Str,
-    required => 1,
+has username_attribute => (
+    is      => 'ro',
+    isa     => Str,
+    default => 'cn',
 );
 
-=item * roles
+=head2 name_attribute
 
-This is a comma separated list of LDAP group objects that are to be queried.
+The attribute which contains the full name of the user. See also:
+
+L<Dancer2::Plugin::Auth::Extensible::Role::User/name>.
+
+Defaults to 'displayName'.
 
 =cut
 
-has roles => (
-    is => 'ro',
-    isa => Str,
-    required => 1,
+has name_attribute => (
+    is      => 'ro',
+    isa     => Str,
+    default => 'displayName',
 );
 
-=back
+=head2 user_filter
+
+Filter used when searching for users.
+
+Defaults to '(objectClass=person)'.
 
 =cut
 
-=head1 Class Methods
+has user_filter => (
+    is      => 'ro',
+    isa     => Str,
+    default => '(objectClass=person)',
+);
 
-=over
+=head2 role_attribute
 
-=item authenticate_user
+The attribute used when searching for role names.
 
-Given the sAMAccountName and password entered by the user, return true if they are
-authenticated, or false if not.
+Defaults to 'cn'.
+
+=cut
+
+has role_attribute => (
+    is      => 'ro',
+    isa     => Str,
+    default => 'cn',
+);
+
+=head2 role_filter
+
+Filter used when searching for roles.
+
+Defaults to '(objectClass=groupOfNames)'
+
+=cut
+
+has role_filter => (
+    is      => 'ro',
+    isa     => Str,
+    default => '(objectClass=groupOfNames)',
+);
+
+=head2 role_member_attribute
+
+The attribute who's value should be a user's DN to show the user has the
+specific L</role_attribute>'s value.
+
+Defaults to 'member'.
+
+=cut
+
+has role_member_attribute => (
+    is      => 'ro',
+    isa     => Str,
+    default => 'member',
+);
+
+=head1 METHODS
+
+=head2 ldap
+
+Returns a connected L<Net::LDAP> object. On error logs an error and returns
+undef.
+
+=cut
+
+sub ldap {
+    my $self = shift;
+    Net::LDAP->new( $self->host, %{ $self->options } )
+      or $self->plugin->app->log(
+        error => "LDAP connect failed for: " . $self->host );
+}
+
+=head2 authenticate_user $username, $password
 
 =cut
 
 sub authenticate_user {
-    my ($self, $username, $password) = @_;
+    my ( $self, $username, $password ) = @_;
 
-    my $ldap = Net::LDAP->new($self->server) or croak "$!";
+    my $user = $self->get_user_details($username) or return;
 
-    my $mesg = $ldap->bind(
-        "cn=" . $username . "," . $self->usergroup,
-        password => $password);
+    my $ldap = $self->ldap or return;
+
+    my $mesg = $ldap->bind( $user->{dn}, password => $password );
 
     $ldap->unbind;
     $ldap->disconnect;
@@ -128,101 +215,93 @@ sub authenticate_user {
     return not $mesg->is_error;
 }
 
-=item get_user_details
-
-Given a sAMAccountName return the common name (cn), distinguished name (dn) and
-user principal name (userPrincipalName) in a hash ref.
+=head2 get_user_details $username
 
 =cut
 
 sub get_user_details {
-    my ($self, $username) = @_;
+    my ( $self, $username ) = @_;
 
-    my $ldap = Net::LDAP->new($self->server) or croak "$@";
+    my $ldap = $self->ldap or return;
 
-    my $mesg = $ldap->bind(
-        $self->authdn,
-        password => $self->password);
+    my $mesg = $ldap->bind( $self->binddn, password => $self->bindpw );
 
-    if ($mesg->is_error) {
-        $self->plugin->app->warning($mesg->error);
+    if ( $mesg->is_error ) {
+        $self->plugin->app->log(
+            warning => "LDAP bind error: " . $mesg->error );
+        return;
     }
 
     $mesg = $ldap->search(
-        base => $self->basedn,
-        filter => "(&(objectClass=user)(sAMAccountName=" . $username . "))",
+        base   => $self->basedn,
+        sizelimit => 1,
+        filter => '(&'
+          . $self->user_filter
+          . '(' . $self->username_attribute . '=' . $username . '))',
+    );
+
+    if ( $mesg->is_error ) {
+        $self->plugin->app->log(
+            warning => "LDAP search error: " . $mesg->error );
+        return;
+    }
+
+    my $user;
+    if ( $mesg->count > 0 ) {
+        my $entry = $mesg->entry(0);
+        $self->plugin->app->log(
+            debug => "User $username found with DN: ",
+            $entry->dn
         );
 
-    if ($mesg->is_error) {
-        $self->plugin->app->warning($mesg->error);
-    }
+        # now get the roles
 
-    my @extract = qw(cn dn name userPrincipalName sAMAccountName);
-    my %props = ();
-
-    if ($mesg->entries > 0) {
-        foreach my $ex (@extract) {
-            $props{$ex} = $mesg->entry(0)->get_value($ex);
-        }
-    } else {
-        $self->plugin->app->warning("Error finding user details.");
-    } 
-
-    $ldap->unbind;
-    $ldap->disconnect; 
-
-    return \%props;
-}
-
-=item get_user_roles
-
-Given a sAMAccountName, return a list of roles that user has.
-
-=cut
-
-sub get_user_roles {
-    my ($self, $username) = @_;
-
-    my $ldap = Net::LDAP->new($self->server) or croak "$@";
-
-    my $mesg = $ldap->bind(
-        $self->authdn,
-        password => $self->password);
-
-    if ($mesg->is_error) {
-        $self->plugin->app->warning($mesg->error);
-    }
-
-    my @relevantroles = split /,/, $self->roles;
-    my @roles = ();
-
-    foreach my $role (@relevantroles) {
         $mesg = $ldap->search(
-            base => $self->basedn,
-            filter => "(&(objectClass=user)(sAMAccountName=" . $username . ")(memberof=cn=". $role . "," . $self->usergroup . "))",
-            );
-        if ($mesg->is_error) {
-            $self->plugin->app->warning($mesg->error);
+            base   => $self->basedn,
+            filter => '(&'
+              . $self->role_filter . '('
+              . $self->role_member_attribute . '='
+              . $entry->dn . '))',
+        );
+
+        if ( $mesg->is_error ) {
+            $self->plugin->app->log(
+                warning => "LDAP search error: " . $mesg->error );
         }
-        if ($mesg->entries > 0) {
-            push @roles, $role;
-        }
+
+        my @roles =
+          map { $_->get_value( $self->role_attribute ) } $mesg->entries;
+
+        $user = {
+            username => $username,
+            name     => $entry->get_value( $self->name_attribute ),
+            dn       => $entry->dn,
+            roles    => \@roles,
+            map { $_ => scalar $entry->get_value($_) } $entry->attributes,
+        };
+    }
+    else {
+        $self->plugin->app->log(
+            debug => "User not found via LDAP: $username" );
     }
 
     $ldap->unbind;
     $ldap->disconnect;
 
-    if (@roles == 0) {
-        $self->plugin->app->warning($settings->{roles});
-    }
-
-    return \@roles;
+    return $user;
 }
 
-=back
+=head2 get_user_roles
 
 =cut
 
+sub get_user_roles {
+    my ( $self, $username ) = @_;
+
+    my $user = $self->get_user_details($username) or return;
+
+    return $user->{roles};
+}
 
 1;
 
