@@ -8,7 +8,7 @@ use Moo;
 with "Dancer2::Plugin::Auth::Extensible::Role::Provider";
 use namespace::clean;
 
-our $VERSION = '0.700';
+our $VERSION = '0.701';
 
 =head1 NAME 
 
@@ -183,16 +183,14 @@ has role_member_attribute => (
 
 =head2 ldap
 
-Returns a connected L<Net::LDAP> object. On error logs an error and returns
-undef.
+Returns a connected L<Net::LDAP> object.
 
 =cut
 
 sub ldap {
     my $self = shift;
     Net::LDAP->new( $self->host, %{ $self->options } )
-      or $self->plugin->app->log(
-        error => "LDAP connect failed for: " . $self->host );
+      or croak "LDAP connect failed for: " . $self->host;
 }
 
 =head2 authenticate_user $username, $password
@@ -201,6 +199,9 @@ sub ldap {
 
 sub authenticate_user {
     my ( $self, $username, $password ) = @_;
+
+    croak "username and password must be defined"
+      unless defined $username && defined $password;
 
     my $user = $self->get_user_details($username) or return;
 
@@ -221,14 +222,15 @@ sub authenticate_user {
 sub get_user_details {
     my ( $self, $username ) = @_;
 
+    croak "username must be defined"
+      unless defined $username;
+
     my $ldap = $self->ldap or return;
 
     my $mesg = $ldap->bind( $self->binddn, password => $self->bindpw );
 
     if ( $mesg->is_error ) {
-        $self->plugin->app->log(
-            warning => "LDAP bind error: " . $mesg->error );
-        return;
+        croak "LDAP bind error: " . $mesg->error;
     }
 
     $mesg = $ldap->search(
@@ -240,9 +242,7 @@ sub get_user_details {
     );
 
     if ( $mesg->is_error ) {
-        $self->plugin->app->log(
-            warning => "LDAP search error: " . $mesg->error );
-        return;
+        croak "LDAP search error: " . $mesg->error;
     }
 
     my $user;
@@ -296,6 +296,9 @@ sub get_user_details {
 
 sub get_user_roles {
     my ( $self, $username ) = @_;
+
+    croak "username must be defined"
+      unless defined $username;
 
     my $user = $self->get_user_details($username) or return;
 

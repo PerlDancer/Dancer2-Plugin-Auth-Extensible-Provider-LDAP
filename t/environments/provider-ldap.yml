@@ -11,6 +11,7 @@ plugins:
                 name_attribute: cn
             config2:
                 provider: LDAP
+                priority: 10
                 host: localhost
                 options:
                     port: 389
@@ -19,4 +20,14 @@ plugins:
                 binddn: 'cn=admin, dc=localnet'
                 bindpw: Eec8aireiZ0bo7Shooxe
                 user_filter: '(employeeType=staff)'
-                user_class: TestLdapUser
+            config3:
+                provider: LDAP
+                priority: 2
+                host: localhost
+                options:
+                    port: 389
+                    scheme: ldap
+                basedn: dc=localnet
+                binddn: 'cn=admin, dc=localnet'
+                bindpw: Eec8aireiZ0bo7Shooxe
+                user_filter: '(employeeType=external)'

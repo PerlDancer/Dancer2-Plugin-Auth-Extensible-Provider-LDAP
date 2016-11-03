@@ -83,8 +83,7 @@ Defaults to 'member'.
 
 ## ldap
 
-Returns a connected [Net::LDAP](https://metacpan.org/pod/Net::LDAP) object. On error logs an error and returns
-undef.
+Returns a connected [Net::LDAP](https://metacpan.org/pod/Net::LDAP) object.
 
 ## authenticate\_user $username, $password
 

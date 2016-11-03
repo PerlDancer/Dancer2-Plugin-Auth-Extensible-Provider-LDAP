@@ -114,7 +114,21 @@ ldap_mockify {
     $ldap->mock_password( 'cn=hashedpassword, ou=People, dc=localnet',
         'password' );
 
-    Dancer2::Plugin::Auth::Extensible::Test::testme( $app, 'base' );
+    $ldap->add(
+        'cn=bananarepublic, ou=People, dc=localnet',
+        attrs => [
+            objectClass =>
+              [ 'inetOrgPerson', 'organizationalPerson', 'person', 'top' ],
+            cn           => 'bananarepublic',
+            sn           => 'bananarepublic',
+            displayName  => 'bananarepublic',
+            employeeType => 'external',
+        ]
+    );
+    $ldap->mock_password( 'cn=bananarepublic, ou=People, dc=localnet',
+        'whatever' );
+
+    Dancer2::Plugin::Auth::Extensible::Test::runtests( $app );
 };
 
 done_testing;
