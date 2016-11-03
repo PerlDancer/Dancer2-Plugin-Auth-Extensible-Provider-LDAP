@@ -1,5 +1,11 @@
 Revision history for Dancer2-Plugin-Auth-Extensible-Provider-LDAP
 
+0.701 Thu  3 Nov 17:56:41 CET 2016
+
+    * Updates for compatibility with plugin v0.620
+      - croak instead of returning undef
+      - add config3 + priorities to tests
+
 0.700 Tue 18 Oct 18:06:38 CEST 2016
 
     [ENHANCEMENTS]
