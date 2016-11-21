@@ -21,19 +21,9 @@ Test::Net::LDAP::Mock->mock_target(
     schema => 'ldap'
 );
 
-{
-    package TestApp;
-    use Dancer2;
-    use Dancer2::Plugin::Auth::Extensible::Test::App;
+BEGIN {
+    my $ldap = Test::Net::LDAP::Mock->new( '127.0.0.1', port => 389 );
 
-}
-
-my $app = Dancer2->runner->psgi_app;
-is( ref $app, 'CODE', 'Got app' );
-
-
-ldap_mockify {
-    my $ldap = Net::LDAP->new( '127.0.0.1', port => 389 );
     $ldap->mock_root_dse( namingContexts => 'dc=localnet' );
 
     $ldap->add( 'cn=admin, dc=localnet', attrs => [], );
@@ -128,7 +118,26 @@ ldap_mockify {
     $ldap->mock_password( 'cn=bananarepublic, ou=People, dc=localnet',
         'whatever' );
 
-    Dancer2::Plugin::Auth::Extensible::Test::runtests( $app );
-};
+    use Dancer2::Plugin::Auth::Extensible::Provider::LDAP;
+    package Dancer2::Plugin::Auth::Extensible::Provider::LDAP;
+
+    no warnings 'redefine';
+    sub ldap {
+        my $self = shift;
+        return $ldap;
+    }
+}
+{
+
+    package TestApp;
+    use Dancer2;
+    use Dancer2::Plugin::Auth::Extensible::Test::App;
+
+}
+
+my $app = Dancer2->runner->psgi_app;
+is( ref $app, 'CODE', 'Got app' );
+
+Dancer2::Plugin::Auth::Extensible::Test::runtests($app);
 
 done_testing;
