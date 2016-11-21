@@ -1,5 +1,11 @@
 Revision history for Dancer2-Plugin-Auth-Extensible-Provider-LDAP
 
+0.702 Mon 21 Nov 14:33:08 CET 2016
+
+    [TESTS]
+
+    * Fix failing tests where there is no local LDAP server.
+
 0.701 Thu  3 Nov 17:56:41 CET 2016
 
     * Updates for compatibility with plugin v0.620
