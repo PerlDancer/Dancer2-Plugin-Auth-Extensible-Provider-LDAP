@@ -1,5 +1,6 @@
 sudo: false
 env: RELEASE_TESTING=1
+dist: trusty
 language: perl
 perl:
   - "5.24"
