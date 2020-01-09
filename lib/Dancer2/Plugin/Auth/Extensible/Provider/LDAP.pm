@@ -229,8 +229,12 @@ Returns a connected L<Net::LDAP> object.
 
 sub ldap {
     my $self = shift;
-    Net::LDAP->new( $self->host, %{ $self->options } )
-      or croak "LDAP connect failed for: " . $self->host;
+    unless (defined $self->{ldap})
+    {
+       $self->{ldap} = Net::LDAP->new( $self->host, %{ $self->options } )
+         or croak "LDAP connect failed for: " . $self->host;
+    }
+    return $self->{ldap};
 }
 
 =head2 authenticate_user $username, $password
@@ -247,7 +251,7 @@ sub authenticate_user {
 
     my $ldap = $self->ldap or return;
 
-    my $mesg = $self->_bind_ldap( $user->{dn}, password => $password );
+    my $mesg = $self->_bind_ldap( $user->{dn}, password => $password);
 
     $ldap->unbind;
     $ldap->disconnect;
