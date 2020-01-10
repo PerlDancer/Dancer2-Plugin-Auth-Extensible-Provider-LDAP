@@ -195,6 +195,17 @@ has role_member_attribute => (
     default => 'member',
 );
 
+sub _unbind_ldap {
+    my ( $self ) = @_;
+
+    my $ldap = $self->ldap or return;
+
+    $ldap->unbind;
+    $ldap->disconnect;
+
+    $self->{ldap} = undef;
+}
+
 sub _bind_ldap {
     my ( $self, $username, $dummy, $password ) = @_;
 
@@ -253,8 +264,7 @@ sub authenticate_user {
 
     my $mesg = $self->_bind_ldap( $user->{dn}, password => $password);
 
-    $ldap->unbind;
-    $ldap->disconnect;
+    $self->_unbind_ldap;
 
     return not $mesg->is_error;
 }
@@ -334,8 +344,7 @@ sub get_user_details {
             debug => "User not found via LDAP: $username" );
     }
 
-    $ldap->unbind;
-    $ldap->disconnect;
+    $self->_unbind_ldap;
 
     return $user;
 }
