@@ -20,7 +20,17 @@ WriteMakefile(
     PREREQ_PM => {
         'Carp'                              => 0,
         'Dancer2::Core::Types'              => 0,
-        'Dancer2::Plugin::Auth::Extensible' => '0.620',
+        'Dancer2::Plugin::Auth::Extensible' => eval {
+            # Dancer2 v0.300001 switched to RFC 7231 behaviour for redirects,
+            # breaking Dancer2::Plugin::Auth::Extensible::Test which our
+            # tests rely on. If Dancer2 is installed and is below this
+            # version then we can survive with D2PAE v0.620, otherwise
+            # we need v0.709 which includes test fixes.
+            require Dancer2;
+            my $d2_version = $Dancer2::VERSION;
+            $d2_version =~ s/_.*//;
+            $d2_version < 0.300001 ? '0.620' : 0;
+        } || '0.709',
         'Moo'                               => '2.000000',
         'namespace::clean'                  => 0,
         'Net::LDAP'                         => 0,
