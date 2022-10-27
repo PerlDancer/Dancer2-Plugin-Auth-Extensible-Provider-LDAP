@@ -92,6 +92,25 @@ has bindpw => (
     required => 0,
 );
 
+=head2 ldap
+
+Returns a connected L<Net::LDAP> object.
+
+=cut
+
+has ldap => (
+    is        => 'lazy',
+    clearer   => '_clear_ldap',
+    predicate => '_has_ldap',
+);
+
+sub _build_ldap {
+    my $self = shift;
+    my $ldap = Net::LDAP->new( $self->host, %{ $self->options } )
+      or croak "LDAP connect failed for: " . $self->host;
+    return $ldap;
+}
+
 =head2 username_attribute
 
 The attribute to match when searching for a username.
@@ -196,14 +215,16 @@ has role_member_attribute => (
 );
 
 sub _unbind_ldap {
-    my ( $self ) = @_;
+    my ($self) = @_;
 
-    my $ldap = $self->ldap or return;
+    return
+      unless $self->_has_ldap;
+
+    my $ldap = $self->ldap;
 
     $ldap->unbind;
     $ldap->disconnect;
-
-    $self->{ldap} = undef;
+    $self->_clear_ldap;
 }
 
 sub _bind_ldap {
@@ -232,22 +253,6 @@ sub _bind_ldap {
 
 =head1 METHODS
 
-=head2 ldap
-
-Returns a connected L<Net::LDAP> object.
-
-=cut
-
-sub ldap {
-    my $self = shift;
-    unless (defined $self->{ldap})
-    {
-       $self->{ldap} = Net::LDAP->new( $self->host, %{ $self->options } )
-         or croak "LDAP connect failed for: " . $self->host;
-    }
-    return $self->{ldap};
-}
-
 =head2 authenticate_user $username, $password
 
 =cut
@@ -262,7 +267,7 @@ sub authenticate_user {
 
     my $ldap = $self->ldap or return;
 
-    my $mesg = $self->_bind_ldap( $user->{dn}, password => $password);
+    my $mesg = $self->_bind_ldap( $user->{dn}, password => $password );
 
     $self->_unbind_ldap;
 
